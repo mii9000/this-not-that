@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+	<!-- Meta Tags -->
+	<meta charset="utf-8">
+	<meta http-equiv="x-ua-compatible" content="ie=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="author" content="ThemeMarch">
+	<!-- Page Title -->
+	<title>This Not That</title>
+	<!-- Stylesheets -->
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" rel="stylesheet">
+	<link rel="stylesheet" href="assets/css/fontawesome.min.css">	
+	<link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body onload="displayPosts()">
+	<!-- Start Cart Area -->
+	<div class="tm-card-wrap">
+		<div class="tm-container">
+			<h2 class="tm-site-name">Find out why people chose one product over the other</h2>
+		</div>
+		<div id="card-container" class="tm-container">
+			
+		</div><!-- .tm-container -->
+		<div class="tm-container">
+			<div class="tm-pagination">
+			</div>
+		</div>
+	</div>
+	<!-- End Cart Area -->
+
+	<!-- Start Popup area -->
+	<div class="tm-popup-wrap">
+		<div class="tm-ex-overlay"></div>
+		<div class="tm-container">
+			<form action="#" class="tm-form">
+				<div class="tm-image-wrap">
+					<div class="tm-profile-pic-wrap">
+						<div class="profile-pic profile-pic1">
+				    	<img id="img-this" src="assets/img/blank-man.jpg"/>
+				      <div class="layer">
+				        <div class="loader"></div>
+				      </div>
+				      <input onchange="encodeImageFileAsURL('img-this', 'changeThisPicture')" class="hidden-input" id="changeThisPicture" type="file"/>
+				    </div>
+				    <h4>Choose This</h4>
+					</div>
+					<div class="tm-profile-pic-wrap">
+				    <div class="profile-pic profile-pic2">
+				    	<img id="img-that" src="assets/img/blank-man.jpg"/>
+				      <div class="layer">
+				        <div class="loader"></div>
+				      </div>
+				      <input onchange="encodeImageFileAsURL('img-that', 'changeThatPicture')" class="hidden-input" id="changeThatPicture" type="file"/>
+				    </div>
+				    <h4>Not This</h4>
+					</div>
+				</div>
+		    <textarea id="review" cols="30" rows="10" placeholder="Write Something..."></textarea>
+		    <div class="tm-form-btn-group">
+		    	<button type="button" class="tm-btn" onclick="addPost()">Add</button>
+		    	<span class="tm-btn">Cancel</span>
+		    </div>
+			</form>
+		</div>
+	</div>
+	<!-- End Popup area -->
+	<div class="tm-popup-toggle"><i class="fa fa-plus"></i></div>
+
+	<script src="assets/js/jquery-1.12.4.min.js"></script>
+	<script src="assets/js/main.js"></script>
+	<script src="https://s3.amazonaws.com/stitch-sdks/js/bundles/4.0.0/stitch.js"></script>
+	<script type="text/javascript">
+		// Initialize the App Client
+		const client = stitch.Stitch.initializeDefaultAppClient("hacktoberfest-izcue");
+		
+		// Get a MongoDB Service Client
+		const mongodb = client.getServiceClient(
+		  stitch.RemoteMongoClient.factory,
+		  "mongodb-atlas"
+		);
+
+		var initialLoaded = false;
+  
+		function encodeImageFileAsURL(imgEl, inputEl) {
+			var filesSelected = document.getElementById(inputEl).files;
+			if (filesSelected.length > 0) {
+				var fileToLoad = filesSelected[0];
+				var fileReader = new FileReader();
+				fileReader.onload = function(fileLoadedEvent) {
+					var srcData = fileLoadedEvent.target.result; // <--- data: base64
+					var newImage = document.getElementById(imgEl);
+					newImage.src = srcData;
+					document.getElementById(imgEl).innerHTML = newImage.outerHTML;
+				}
+				fileReader.readAsDataURL(fileToLoad);
+			}
+		}
+
+		function displayPosts() {
+		  client.callFunction("loadPosts", [])
+		  .then(result => {
+			result.forEach(function(o) {
+					$("#card-container").append('<div class="tm-card"><div class="tm-card-in"><div class="tm-left"><img src="'+o.img_this+'" alt=""><div class="tm-status"><i class="fa fa-check"></i></div></div><div class="tm-right"><img src="'+o.img_that+'" alt=""><div class="tm-status"><i class="fa fa-times"></i></div></div></div><div class="tm-card-text">'+o.review+'</div></div>');
+				});
+		  })
+		  .finally(_ => {
+			console.log("inital load complete!");
+			initialLoaded = true;
+		  });
+		}
+  
+		function displayPostsOnLoad() {
+		  client.auth
+			.loginWithCredential(new stitch.AnonymousCredential())
+			.then(displayPosts)
+			.catch(console.error);
+		}
+  
+		function addPost() {
+			let o = {
+				owner_id: client.auth.user.id,
+				img_this: document.getElementById('img-this').src,
+				img_that: document.getElementById('img-that').src,
+				date: new Date(),
+				review: document.getElementById('review').value
+			};
+			$("#card-container").prepend('<div class="tm-card"><div class="tm-card-in"><div class="tm-left"><img src="'+o.img_this+'" alt=""><div class="tm-status"><i class="fa fa-check"></i></div></div><div class="tm-right"><img src="'+o.img_that+'" alt=""><div class="tm-status"><i class="fa fa-times"></i></div></div></div><div class="tm-card-text">'+o.review+'</div></div>');
+			client.callFunction("createPost", [o])
+			.then(x => {
+				console.log('submitted');
+			})
+			.catch(console.error);
+		}
+	  </script>
+</body>
+</html>
